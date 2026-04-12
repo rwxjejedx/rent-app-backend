@@ -1,0 +1,151 @@
+generator client {
+  provider = "prisma-client-js"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+enum Role {
+  TENANT
+  USER
+}
+
+enum BookingStatus {
+  PENDING
+  CONFIRMED
+  CANCELLED
+  COMPLETED
+}
+
+enum RateType {
+  NOMINAL
+  PERCENTAGE
+}
+
+model User {
+  id         Int        @id @default(autoincrement())
+  email      String     @unique
+  password   String
+  name       String
+  role       Role       @default(USER)
+  avatar     String?
+  createdAt  DateTime   @default(now())
+  updatedAt  DateTime   @updatedAt
+  bookings   Booking[]
+  reviews    Review[]
+  properties Property[]
+
+  @@map("users")
+}
+
+model Property {
+  id          Int             @id @default(autoincrement())
+  name        String
+  description String
+  location    String
+  city        String
+  ownerId     Int
+  owner       User            @relation(fields: [ownerId], references: [id])
+  images      PropertyImage[]
+  roomTypes   RoomType[]
+  reviews     Review[]
+  createdAt   DateTime        @default(now())
+  updatedAt   DateTime        @updatedAt
+
+  @@map("properties")
+}
+
+model PropertyImage {
+  id         Int      @id @default(autoincrement())
+  url        String
+  propertyId Int
+  property   Property @relation(fields: [propertyId], references: [id], onDelete: Cascade)
+
+  @@map("property_images")
+}
+
+model RoomType {
+  id          Int             @id @default(autoincrement())
+  name        String
+  description String
+  basePrice   Decimal
+  capacity    Int             @default(1)
+  propertyId  Int
+  property    Property        @relation(fields: [propertyId], references: [id], onDelete: Cascade)
+  images      RoomTypeImage[]
+  rooms       Room[]
+  peakRates   PeakRate[]
+  bookings    Booking[]
+  createdAt   DateTime        @default(now())
+  updatedAt   DateTime        @updatedAt
+
+  @@map("room_types")
+}
+
+model RoomTypeImage {
+  id         Int      @id @default(autoincrement())
+  url        String
+  roomTypeId Int
+  roomType   RoomType @relation(fields: [roomTypeId], references: [id], onDelete: Cascade)
+
+  @@map("room_type_images")
+}
+
+model Room {
+  id         Int      @id @default(autoincrement())
+  number     String
+  roomTypeId Int
+  roomType   RoomType @relation(fields: [roomTypeId], references: [id], onDelete: Cascade)
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  @@map("rooms")
+}
+
+model PeakRate {
+  id         Int      @id @default(autoincrement())
+  startDate  DateTime
+  endDate    DateTime
+  rateType   RateType
+  rateValue  Decimal
+  roomTypeId Int
+  roomType   RoomType @relation(fields: [roomTypeId], references: [id], onDelete: Cascade)
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  @@map("peak_rates")
+}
+
+model Booking {
+  id         Int           @id @default(autoincrement())
+  userId     Int
+  user       User          @relation(fields: [userId], references: [id])
+  roomTypeId Int
+  roomType   RoomType      @relation(fields: [roomTypeId], references: [id])
+  checkIn    DateTime
+  checkOut   DateTime
+  totalPrice Decimal
+  status     BookingStatus @default(PENDING)
+  review     Review?
+  createdAt  DateTime      @default(now())
+  updatedAt  DateTime      @updatedAt
+
+  @@map("bookings")
+}
+
+model Review {
+  id         Int      @id @default(autoincrement())
+  rating     Int
+  comment    String
+  userId     Int
+  user       User     @relation(fields: [userId], references: [id])
+  propertyId Int
+  property   Property @relation(fields: [propertyId], references: [id])
+  bookingId  Int      @unique
+  booking    Booking  @relation(fields: [bookingId], references: [id])
+  createdAt  DateTime @default(now())
+
+  @@map("reviews")
+}
