@@ -3,4 +3,10 @@ dist/
 *.log
 .env
 .DS_Store
+
+# Prisma Client (Hasil generate jangan di-upload karena berat dan bisa di-generate ulang)
+node_modules/.prisma
 /src/generated/prisma
+
+# JANGAN masukkan prisma/migrations di sini. 
+# Biarkan folder migrations ter-upload ke Git.
