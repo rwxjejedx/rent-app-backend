@@ -70,6 +70,8 @@ model Property {
   description String
   location    String
   city        String
+  latitude    Float?
+  longitude   Float?
   categoryId  Int?
   category    Category?       @relation(fields: [categoryId], references: [id])
   ownerId     Int

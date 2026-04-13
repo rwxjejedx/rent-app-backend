@@ -6,6 +6,8 @@ export const createPropertySchema = z.object({
   location: z.string().min(1, 'Location is required'),
   city: z.string().min(1, 'City is required'),
   categoryId: z.number().int().positive().optional(),
+  latitude: z.number().optional(),
+  longitude: z.number().optional(),
   images: z.array(z.string().url('Invalid image URL')).optional(),
 });
 

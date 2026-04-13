@@ -1,4 +1,5 @@
 import prisma from '../lib/prisma.js';
+import { geocodeLocation } from '../lib/geocoding.js';
 
 interface PropertyInput {
   name: string;
@@ -7,6 +8,8 @@ interface PropertyInput {
   city: string;
   categoryId?: number;
   images?: string[];
+  latitude?: number;
+  longitude?: number;
 }
 
 interface PropertyQuery {
@@ -22,6 +25,16 @@ interface PropertyQuery {
 
 export const createProperty = async (data: PropertyInput, ownerId: number) => {
   const { images, ...propertyData } = data;
+
+  // Auto-geocode jika koordinat belum ada
+  if (!propertyData.latitude || !propertyData.longitude) {
+    const geo = await geocodeLocation(data.location, data.city);
+    if (geo) {
+      propertyData.latitude = geo.latitude;
+      propertyData.longitude = geo.longitude;
+    }
+  }
+
   return prisma.property.create({
     data: {
       ...propertyData,
@@ -202,6 +215,18 @@ export const updateProperty = async (id: number, data: Partial<PropertyInput>, o
   if (property.ownerId !== ownerId) throw new Error('Forbidden');
 
   const { images, ...propertyData } = data;
+
+  // Re-geocode jika lokasi atau kota berubah
+  if (data.location || data.city) {
+    const location = data.location ?? property.location;
+    const city = data.city ?? property.city;
+    const geo = await geocodeLocation(location, city);
+    if (geo) {
+      propertyData.latitude = geo.latitude;
+      propertyData.longitude = geo.longitude;
+    }
+  }
+
   return prisma.property.update({
     where: { id },
     data: propertyData,

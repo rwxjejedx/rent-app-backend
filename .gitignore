@@ -3,6 +3,7 @@ dist/
 *.log
 .env
 .DS_Store
+seed.ts
 
 # Prisma Client (Hasil generate jangan di-upload karena berat dan bisa di-generate ulang)
 node_modules/.prisma

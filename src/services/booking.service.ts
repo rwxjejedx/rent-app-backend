@@ -25,6 +25,19 @@ export const createBooking = async (
   const availableRooms = roomType.rooms.length - overlappingBookings;
   if (availableRooms <= 0) throw new Error('No rooms available for the selected dates');
 
+  // Cek room availability (tanggal yang di-block tenant)
+  const blockedDates = await prisma.roomAvailability.findMany({
+    where: {
+      roomTypeId: data.roomTypeId,
+      isAvailable: false,
+      date: { gte: checkIn, lt: checkOut },
+    },
+  });
+  if (blockedDates.length > 0) {
+    const blockedStr = blockedDates[0].date.toISOString().split('T')[0];
+    throw new Error(`Room is not available on ${blockedStr}`);
+  }
+
   const nights = Math.ceil((checkOut.getTime() - checkIn.getTime()) / (1000 * 60 * 60 * 24));
   const totalPrice = calculateTotalPrice(roomType.basePrice, roomType.peakRates, checkIn, nights);
   const paymentDeadline = new Date(Date.now() + 60 * 60 * 1000); // 1 jam
