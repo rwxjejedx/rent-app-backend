@@ -11,8 +11,17 @@ import uploadRoutes from './routes/upload.routes.js';
 import categoryRoutes from './routes/category.routes.js';
 import availabilityRoutes from './routes/availability.routes.js';
 import { errorHandler, notFound } from './middlewares/error.middleware.js';
+import cors from 'cors';
 
 const app = express();
+
+app.use(cors({
+  origin: 'http://localhost:5173', // Izinkan hanya frontend kamu
+  methods: ['GET', 'POST', 'PUT', 'DELETE'],
+  allowedHeaders: ['Content-Type', 'Authorization'],
+  credentials: true // Penting jika kamu nanti menggunakan cookie/session
+}));
+
 const PORT = process.env.PORT ?? 3000;
 const API_PREFIX = '/api/v1';
 
