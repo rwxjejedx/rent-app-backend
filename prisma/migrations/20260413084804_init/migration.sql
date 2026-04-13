@@ -2,7 +2,10 @@
 CREATE TYPE "Role" AS ENUM ('TENANT', 'USER');
 
 -- CreateEnum
-CREATE TYPE "BookingStatus" AS ENUM ('PENDING', 'CONFIRMED', 'CANCELLED', 'COMPLETED');
+CREATE TYPE "BookingStatus" AS ENUM ('WAITING_PAYMENT', 'PENDING', 'CONFIRMED', 'CANCELLED', 'COMPLETED');
+
+-- CreateEnum
+CREATE TYPE "PaymentMethod" AS ENUM ('MANUAL_TRANSFER', 'PAYMENT_GATEWAY');
 
 -- CreateEnum
 CREATE TYPE "RateType" AS ENUM ('NOMINAL', 'PERCENTAGE');
@@ -11,14 +14,29 @@ CREATE TYPE "RateType" AS ENUM ('NOMINAL', 'PERCENTAGE');
 CREATE TABLE "users" (
     "id" SERIAL NOT NULL,
     "email" TEXT NOT NULL,
-    "password" TEXT NOT NULL,
+    "password" TEXT,
     "name" TEXT NOT NULL,
     "role" "Role" NOT NULL DEFAULT 'USER',
     "avatar" TEXT,
+    "googleId" TEXT,
+    "isVerified" BOOLEAN NOT NULL DEFAULT false,
+    "verificationToken" TEXT,
+    "tokenExpiry" TIMESTAMP(3),
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updatedAt" TIMESTAMP(3) NOT NULL,
 
     CONSTRAINT "users_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE "categories" (
+    "id" SERIAL NOT NULL,
+    "name" TEXT NOT NULL,
+    "tenantId" INTEGER NOT NULL,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" TIMESTAMP(3) NOT NULL,
+
+    CONSTRAINT "categories_pkey" PRIMARY KEY ("id")
 );
 
 -- CreateTable
@@ -28,6 +46,7 @@ CREATE TABLE "properties" (
     "description" TEXT NOT NULL,
     "location" TEXT NOT NULL,
     "city" TEXT NOT NULL,
+    "categoryId" INTEGER,
     "ownerId" INTEGER NOT NULL,
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updatedAt" TIMESTAMP(3) NOT NULL,
@@ -79,6 +98,18 @@ CREATE TABLE "rooms" (
 );
 
 -- CreateTable
+CREATE TABLE "room_availability" (
+    "id" SERIAL NOT NULL,
+    "date" TIMESTAMP(3) NOT NULL,
+    "isAvailable" BOOLEAN NOT NULL DEFAULT false,
+    "roomTypeId" INTEGER NOT NULL,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" TIMESTAMP(3) NOT NULL,
+
+    CONSTRAINT "room_availability_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
 CREATE TABLE "peak_rates" (
     "id" SERIAL NOT NULL,
     "startDate" TIMESTAMP(3) NOT NULL,
@@ -100,7 +131,10 @@ CREATE TABLE "bookings" (
     "checkIn" TIMESTAMP(3) NOT NULL,
     "checkOut" TIMESTAMP(3) NOT NULL,
     "totalPrice" DECIMAL(65,30) NOT NULL,
-    "status" "BookingStatus" NOT NULL DEFAULT 'PENDING',
+    "status" "BookingStatus" NOT NULL DEFAULT 'WAITING_PAYMENT',
+    "paymentMethod" "PaymentMethod" NOT NULL DEFAULT 'MANUAL_TRANSFER',
+    "paymentProof" TEXT,
+    "paymentDeadline" TIMESTAMP(3) NOT NULL,
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updatedAt" TIMESTAMP(3) NOT NULL,
 
@@ -124,7 +158,22 @@ CREATE TABLE "reviews" (
 CREATE UNIQUE INDEX "users_email_key" ON "users"("email");
 
 -- CreateIndex
+CREATE UNIQUE INDEX "users_googleId_key" ON "users"("googleId");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "categories_name_tenantId_key" ON "categories"("name", "tenantId");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "room_availability_date_roomTypeId_key" ON "room_availability"("date", "roomTypeId");
+
+-- CreateIndex
 CREATE UNIQUE INDEX "reviews_bookingId_key" ON "reviews"("bookingId");
+
+-- AddForeignKey
+ALTER TABLE "categories" ADD CONSTRAINT "categories_tenantId_fkey" FOREIGN KEY ("tenantId") REFERENCES "users"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "properties" ADD CONSTRAINT "properties_categoryId_fkey" FOREIGN KEY ("categoryId") REFERENCES "categories"("id") ON DELETE SET NULL ON UPDATE CASCADE;
 
 -- AddForeignKey
 ALTER TABLE "properties" ADD CONSTRAINT "properties_ownerId_fkey" FOREIGN KEY ("ownerId") REFERENCES "users"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
@@ -140,6 +189,9 @@ ALTER TABLE "room_type_images" ADD CONSTRAINT "room_type_images_roomTypeId_fkey"
 
 -- AddForeignKey
 ALTER TABLE "rooms" ADD CONSTRAINT "rooms_roomTypeId_fkey" FOREIGN KEY ("roomTypeId") REFERENCES "room_types"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "room_availability" ADD CONSTRAINT "room_availability_roomTypeId_fkey" FOREIGN KEY ("roomTypeId") REFERENCES "room_types"("id") ON DELETE CASCADE ON UPDATE CASCADE;
 
 -- AddForeignKey
 ALTER TABLE "peak_rates" ADD CONSTRAINT "peak_rates_roomTypeId_fkey" FOREIGN KEY ("roomTypeId") REFERENCES "room_types"("id") ON DELETE CASCADE ON UPDATE CASCADE;

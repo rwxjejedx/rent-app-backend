@@ -13,10 +13,16 @@ enum Role {
 }
 
 enum BookingStatus {
+  WAITING_PAYMENT
   PENDING
   CONFIRMED
   CANCELLED
   COMPLETED
+}
+
+enum PaymentMethod {
+  MANUAL_TRANSFER
+  PAYMENT_GATEWAY
 }
 
 enum RateType {
@@ -40,8 +46,22 @@ model User {
   bookings          Booking[]
   reviews           Review[]
   properties        Property[]
+  categories        Category[]
 
   @@map("users")
+}
+
+model Category {
+  id         Int        @id @default(autoincrement())
+  name       String
+  tenantId   Int
+  tenant     User       @relation(fields: [tenantId], references: [id])
+  properties Property[]
+  createdAt  DateTime   @default(now())
+  updatedAt  DateTime   @updatedAt
+
+  @@unique([name, tenantId])
+  @@map("categories")
 }
 
 model Property {
@@ -50,6 +70,8 @@ model Property {
   description String
   location    String
   city        String
+  categoryId  Int?
+  category    Category?       @relation(fields: [categoryId], references: [id])
   ownerId     Int
   owner       User            @relation(fields: [ownerId], references: [id])
   images      PropertyImage[]
@@ -71,19 +93,20 @@ model PropertyImage {
 }
 
 model RoomType {
-  id          Int             @id @default(autoincrement())
-  name        String
-  description String
-  basePrice   Decimal
-  capacity    Int             @default(1)
-  propertyId  Int
-  property    Property        @relation(fields: [propertyId], references: [id], onDelete: Cascade)
-  images      RoomTypeImage[]
-  rooms       Room[]
-  peakRates   PeakRate[]
-  bookings    Booking[]
-  createdAt   DateTime        @default(now())
-  updatedAt   DateTime        @updatedAt
+  id            Int               @id @default(autoincrement())
+  name          String
+  description   String
+  basePrice     Decimal
+  capacity      Int               @default(1)
+  propertyId    Int
+  property      Property          @relation(fields: [propertyId], references: [id], onDelete: Cascade)
+  images        RoomTypeImage[]
+  rooms         Room[]
+  peakRates     PeakRate[]
+  bookings      Booking[]
+  availability  RoomAvailability[]
+  createdAt     DateTime          @default(now())
+  updatedAt     DateTime          @updatedAt
 
   @@map("room_types")
 }
@@ -108,6 +131,19 @@ model Room {
   @@map("rooms")
 }
 
+model RoomAvailability {
+  id         Int      @id @default(autoincrement())
+  date       DateTime
+  isAvailable Boolean @default(false)
+  roomTypeId Int
+  roomType   RoomType @relation(fields: [roomTypeId], references: [id], onDelete: Cascade)
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  @@unique([date, roomTypeId])
+  @@map("room_availability")
+}
+
 model PeakRate {
   id         Int      @id @default(autoincrement())
   startDate  DateTime
@@ -123,18 +159,21 @@ model PeakRate {
 }
 
 model Booking {
-  id         Int           @id @default(autoincrement())
-  userId     Int
-  user       User          @relation(fields: [userId], references: [id])
-  roomTypeId Int
-  roomType   RoomType      @relation(fields: [roomTypeId], references: [id])
-  checkIn    DateTime
-  checkOut   DateTime
-  totalPrice Decimal
-  status     BookingStatus @default(PENDING)
-  review     Review?
-  createdAt  DateTime      @default(now())
-  updatedAt  DateTime      @updatedAt
+  id              Int           @id @default(autoincrement())
+  userId          Int
+  user            User          @relation(fields: [userId], references: [id])
+  roomTypeId      Int
+  roomType        RoomType      @relation(fields: [roomTypeId], references: [id])
+  checkIn         DateTime
+  checkOut        DateTime
+  totalPrice      Decimal
+  status          BookingStatus @default(WAITING_PAYMENT)
+  paymentMethod   PaymentMethod @default(MANUAL_TRANSFER)
+  paymentProof    String?
+  paymentDeadline DateTime
+  review          Review?
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
 
   @@map("bookings")
 }

@@ -14,6 +14,23 @@ export const createBooking = async (req: AuthRequest, res: Response) => {
   }
 };
 
+export const uploadPaymentProof = async (req: AuthRequest, res: Response) => {
+  try {
+    if (!req.file) {
+      res.status(400).json({ message: 'No file uploaded' });
+      return;
+    }
+    const booking = await bookingService.uploadPaymentProof(
+      Number(req.params.id),
+      req.userId!,
+      req.file
+    );
+    res.json(booking);
+  } catch (error: any) {
+    res.status(error.message === 'Forbidden' ? 403 : 400).json({ message: error.message });
+  }
+};
+
 export const getUserBookings = async (req: AuthRequest, res: Response) => {
   try {
     const bookings = await bookingService.getUserBookings(req.userId!);

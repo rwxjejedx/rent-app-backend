@@ -5,7 +5,19 @@ interface PropertyInput {
   description: string;
   location: string;
   city: string;
+  categoryId?: number;
   images?: string[];
+}
+
+interface PropertyQuery {
+  city?: string;
+  name?: string;
+  categoryId?: string;
+  checkIn?: string;
+  checkOut?: string;
+  sort?: string;
+  page?: string;
+  limit?: string;
 }
 
 export const createProperty = async (data: PropertyInput, ownerId: number) => {
@@ -18,31 +30,41 @@ export const createProperty = async (data: PropertyInput, ownerId: number) => {
     },
     include: {
       images: true,
+      category: true,
       owner: { select: { id: true, name: true, email: true } },
     },
   });
 };
 
-export const getAllProperties = async (city?: string, checkIn?: string, checkOut?: string, sort?: string) => {
+export const getAllProperties = async (query: PropertyQuery) => {
+  const { city, name, categoryId, checkIn, checkOut, sort, page = '1', limit = '10' } = query;
+
+  const pageNum = Math.max(1, parseInt(page));
+  const limitNum = Math.min(50, Math.max(1, parseInt(limit)));
+  const skip = (pageNum - 1) * limitNum;
+
   const where: any = {};
   if (city) where.city = { contains: city, mode: 'insensitive' };
+  if (name) where.name = { contains: name, mode: 'insensitive' };
+  if (categoryId) where.categoryId = parseInt(categoryId);
 
-  const properties = await prisma.property.findMany({
-    where,
-    include: {
-      images: true,
-      owner: { select: { id: true, name: true } },
-      roomTypes: {
-        include: {
-          rooms: true,
-          peakRates: true,
-          _count: { select: { bookings: true } },
+  const [properties, total] = await Promise.all([
+    prisma.property.findMany({
+      where,
+      include: {
+        images: true,
+        category: true,
+        owner: { select: { id: true, name: true } },
+        roomTypes: {
+          include: { rooms: true, peakRates: true },
         },
+        reviews: { select: { rating: true } },
       },
-      reviews: { select: { rating: true } },
-    },
-    orderBy: { createdAt: 'desc' },
-  });
+      skip,
+      take: limitNum,
+    }),
+    prisma.property.count({ where }),
+  ]);
 
   const result = properties.map((property) => {
     const roomTypesWithPrice = property.roomTypes.map((rt) => {
@@ -61,10 +83,21 @@ export const getAllProperties = async (city?: string, checkIn?: string, checkOut
     return { ...property, roomTypes: roomTypesWithPrice, minPrice, avgRating };
   });
 
+  // Sort
   if (sort === 'price_asc') result.sort((a, b) => (a.minPrice ?? 0) - (b.minPrice ?? 0));
   if (sort === 'price_desc') result.sort((a, b) => (b.minPrice ?? 0) - (a.minPrice ?? 0));
+  if (sort === 'name_asc') result.sort((a, b) => a.name.localeCompare(b.name));
+  if (sort === 'name_desc') result.sort((a, b) => b.name.localeCompare(a.name));
 
-  return result;
+  return {
+    data: result,
+    pagination: {
+      total,
+      page: pageNum,
+      limit: limitNum,
+      totalPages: Math.ceil(total / limitNum),
+    },
+  };
 };
 
 export const getPropertyById = async (id: number, checkIn?: string, checkOut?: string) => {
@@ -72,6 +105,7 @@ export const getPropertyById = async (id: number, checkIn?: string, checkOut?: s
     where: { id },
     include: {
       images: true,
+      category: true,
       owner: { select: { id: true, name: true, email: true } },
       roomTypes: {
         include: {
@@ -80,7 +114,7 @@ export const getPropertyById = async (id: number, checkIn?: string, checkOut?: s
           peakRates: true,
           bookings: {
             where: {
-              status: { in: ['PENDING', 'CONFIRMED'] },
+              status: { in: ['WAITING_PAYMENT', 'PENDING', 'CONFIRMED'] },
               ...(checkIn && checkOut && {
                 AND: [
                   { checkIn: { lt: new Date(checkOut) } },
@@ -116,6 +150,52 @@ export const getPropertyById = async (id: number, checkIn?: string, checkOut?: s
   return { ...property, roomTypes: roomTypesWithAvailability, avgRating };
 };
 
+export const getPropertyCalendar = async (id: number, year: number, month: number) => {
+  const startDate = new Date(year, month - 1, 1);
+  const endDate = new Date(year, month, 0);
+
+  const property = await prisma.property.findUnique({
+    where: { id },
+    include: {
+      roomTypes: {
+        include: {
+          peakRates: {
+            where: {
+              OR: [
+                { startDate: { lte: endDate }, endDate: { gte: startDate } },
+              ],
+            },
+          },
+        },
+      },
+    },
+  });
+
+  if (!property) throw new Error('Property not found');
+
+  // Generate price per day untuk setiap room type
+  const calendar: Record<string, any> = {};
+  const days = endDate.getDate();
+
+  for (let day = 1; day <= days; day++) {
+    const date = new Date(year, month - 1, day);
+    const dateStr = date.toISOString().split('T')[0];
+
+    const roomPrices = property.roomTypes.map((rt) => {
+      const price = getEffectivePrice(rt.basePrice, rt.peakRates, date.toISOString());
+      return { roomTypeId: rt.id, name: rt.name, price };
+    });
+
+    const minPrice = roomPrices.length
+      ? Math.min(...roomPrices.map((r) => r.price))
+      : null;
+
+    calendar[dateStr] = { date: dateStr, roomPrices, minPrice };
+  }
+
+  return calendar;
+};
+
 export const updateProperty = async (id: number, data: Partial<PropertyInput>, ownerId: number) => {
   const property = await prisma.property.findUnique({ where: { id } });
   if (!property) throw new Error('Property not found');
@@ -125,7 +205,7 @@ export const updateProperty = async (id: number, data: Partial<PropertyInput>, o
   return prisma.property.update({
     where: { id },
     data: propertyData,
-    include: { images: true },
+    include: { images: true, category: true },
   });
 };
 
@@ -141,6 +221,7 @@ export const getMyProperties = async (ownerId: number) => {
     where: { ownerId },
     include: {
       images: true,
+      category: true,
       roomTypes: {
         include: { rooms: true, _count: { select: { bookings: true } } },
       },
