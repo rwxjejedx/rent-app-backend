@@ -1,11 +1,12 @@
 import 'dotenv/config';
 import express, { Request, Response } from 'express';
-import './lib/passport.js'; // Pastikan Passport diinisialisasi
+import './lib/passport.js';
 import authRoutes from './routes/auth.routes.js';
 import userRoutes from './routes/user.routes.js';
 import propertyRoutes from './routes/property.routes.js';
 import roomRoutes from './routes/room.routes.js';
 import bookingRoutes from './routes/booking.routes.js';
+import uploadRoutes from './routes/upload.routes.js';
 import { errorHandler, notFound } from './middlewares/error.middleware.js';
 
 const app = express();
@@ -23,6 +24,7 @@ app.use('/users', userRoutes);
 app.use('/properties', propertyRoutes);
 app.use('/rooms', roomRoutes);
 app.use('/bookings', bookingRoutes);
+app.use('/uploads', uploadRoutes);
 
 app.use(notFound);
 app.use(errorHandler);
