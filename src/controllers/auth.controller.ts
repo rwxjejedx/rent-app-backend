@@ -3,39 +3,32 @@ import * as authService from '../services/auth.service.js';
 
 export const register = async (req: Request, res: Response) => {
   try {
-    const { email, password, name, role } = req.body;
-    const user = await authService.register(email, password, name, role);
-    res.status(201).json({
-      message: 'Registration successful. Please check your email for the OTP code.',
-      user,
-    });
+    const { email, name, role } = req.body;
+    const result = await authService.register(email, name, role ?? 'USER');
+    res.status(201).json(result);
   } catch (error: any) {
     res.status(400).json({ message: error.message });
   }
 };
 
-export const verifyOtp = async (req: Request, res: Response) => {
+export const verifyAndSetPassword = async (req: Request, res: Response) => {
   try {
-    const { email, otp } = req.body;
-    if (!email || !otp) {
-      res.status(400).json({ message: 'Email and OTP are required' });
+    const { token, password } = req.body;
+    if (!token || !password) {
+      res.status(400).json({ message: 'Token and password are required' });
       return;
     }
-    const result = await authService.verifyOtp(email, otp);
+    const result = await authService.verifyAndSetPassword(token, password);
     res.json(result);
   } catch (error: any) {
     res.status(400).json({ message: error.message });
   }
 };
 
-export const resendOtp = async (req: Request, res: Response) => {
+export const resendVerification = async (req: Request, res: Response) => {
   try {
     const { email } = req.body;
-    if (!email) {
-      res.status(400).json({ message: 'Email is required' });
-      return;
-    }
-    const result = await authService.resendOtp(email);
+    const result = await authService.resendVerification(email);
     res.json(result);
   } catch (error: any) {
     res.status(400).json({ message: error.message });
@@ -49,5 +42,17 @@ export const login = async (req: Request, res: Response) => {
     res.json(result);
   } catch (error: any) {
     res.status(401).json({ message: error.message });
+  }
+};
+
+export const googleCallback = async (req: Request, res: Response) => {
+  try {
+    const user = req.user as any;
+    const { token } = authService.generateJwtForUser(user);
+    // Redirect ke frontend dengan token
+    const frontendUrl = process.env.FRONTEND_URL ?? 'http://localhost:5173';
+    res.redirect(`${frontendUrl}/auth/callback?token=${token}&role=${user.role}`);
+  } catch (error: any) {
+    res.status(500).json({ message: error.message });
   }
 };
