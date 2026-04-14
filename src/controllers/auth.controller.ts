@@ -11,6 +11,12 @@ export const register = async (req: Request, res: Response) => {
   }
 };
 
+export const handleEmailClick = (req: Request, res: Response) => {
+  const { token, role } = req.query;
+  // Redirect ke halaman Set Password di React kamu (Vite port 5173)
+  res.redirect(`${process.env.FRONTEND_URL}/set-password?token=${token}&role=${role}`);
+};
+
 export const verifyAndSetPassword = async (req: Request, res: Response) => {
   try {
     const { token, password } = req.body;

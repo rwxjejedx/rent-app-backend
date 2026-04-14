@@ -8,6 +8,8 @@ const router = Router();
 
 // Email auth
 router.post('/register', validate(registerSchema), authController.register);
+// Untuk menangani klik dari email
+router.get('/verify', authController.handleEmailClick);
 router.post('/verify', validate(verifySchema), authController.verifyAndSetPassword);
 router.post('/resend-verification', authController.resendVerification);
 router.post('/login', validate(loginSchema), authController.login);
