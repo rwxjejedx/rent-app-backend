@@ -1,3 +1,29 @@
-DATABASE_URL="xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
-JWT_SECRET="xxxxxxxxxxxxxxxxxxx"
+# App
 PORT=xxxx
+APP_URL=xxxxxxxxxxxx
+FRONTEND_URL=xxxxxxxxxxxxxxx
+
+# Database
+DATABASE_URL="xxxxxxxxxxxxxxxx"
+# JWT
+JWT_SECRET="xxxxxxxxxxxxxxxx"
+
+# Gmail
+GMAIL_USER=xxxxxxxxxxxxxxxxxxx
+GMAIL_APP_PASSWORD=xxxxxxxxxxxxxxxxxxx
+
+# Google OAuth
+GOOGLE_CLIENT_ID=xxxxxxxxxxxxxxxxxxxxx
+GOOGLE_CLIENT_SECRET=xxxxxxxxxxxxxxxxxxxxxxx
+GOOGLE_CALLBACK_URL=xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
+
+#cloudinary
+CLOUDINARY_CLOUD_NAME=xxxxxxxxxxxxxx
+CLOUDINARY_API_KEY=xxxxxxxxxxxxxxxxxxxx
+CLOUDINARY_API_SECRET=xxxxxxxxxxxxxxxxxxxxxxx
+
+# OpenCage Geocoding API
+OPENCAGE_API_KEY=xxxxxxxxxxxxxxxxxxxxxxxxx
+
+# Frontend
+FRONTEND_URL=xxxxxxxxxxxxxxxxxxxxxxxx
