@@ -24,6 +24,12 @@ interface PropertyQuery {
 }
 
 export const createProperty = async (data: PropertyInput, ownerId: number) => {
+  // Guard: tenant must complete profile first
+  const owner = await prisma.user.findUnique({ where: { id: ownerId } });
+  if (!owner?.isProfileComplete) {
+    throw new Error('Please complete your tenant profile before adding a property');
+  }
+
   const { images, ...propertyData } = data;
 
   // Auto-geocode jika koordinat belum ada

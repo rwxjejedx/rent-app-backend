@@ -41,6 +41,12 @@ model User {
   isVerified        Boolean    @default(false)
   verificationToken String?
   tokenExpiry       DateTime?
+  phone             String?
+  npwp              String?
+  officeAddress     String?
+  bankName          String?
+  bankAccount       String?
+  isProfileComplete Boolean    @default(false)
   createdAt         DateTime   @default(now())
   updatedAt         DateTime   @updatedAt
   bookings          Booking[]
