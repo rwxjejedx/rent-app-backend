@@ -10,6 +10,7 @@ import bookingRoutes from './routes/booking.routes.js';
 import uploadRoutes from './routes/upload.routes.js';
 import categoryRoutes from './routes/category.routes.js';
 import availabilityRoutes from './routes/availability.routes.js';
+import notificationRoutes from './routes/notification.routes.js';
 import { errorHandler, notFound } from './middlewares/error.middleware.js';
 import cors from 'cors';
 
@@ -40,6 +41,7 @@ app.use(`${API_PREFIX}/bookings`, bookingRoutes);
 app.use(`${API_PREFIX}/uploads`, uploadRoutes);
 app.use(`${API_PREFIX}/categories`, categoryRoutes);
 app.use(`${API_PREFIX}/availability`, availabilityRoutes);
+app.use(`${API_PREFIX}/notifications`, notificationRoutes);
 
 app.use(notFound);
 app.use(errorHandler);

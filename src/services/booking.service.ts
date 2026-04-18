@@ -91,6 +91,14 @@ export const createBooking = async (
     'BOOKING_NEW',
     booking.id
   );
+  // 7. Notifikasi kepada User
+  await createNotification(
+    userId,
+    '📝 Booking Created',
+    `You have successfully booked ${booking.roomType.property.name}. Please complete your payment before the deadline.`,
+    'BOOKING_NEW',
+    booking.id
+  );
 
   return booking;
 };
@@ -147,6 +155,15 @@ export const uploadPaymentProof = async (
     updated.id
   );
 
+  // 1b. Notifikasi kepada User
+  await createNotification(
+    userId,
+    '💳 Payment Uploaded',
+    `Your payment proof for ${updated.roomType.property.name} has been uploaded. Please wait for the tenant to verify.`,
+    'PAYMENT_UPLOADED',
+    updated.id
+  );
+
   return updated;
 };
 
@@ -190,7 +207,12 @@ export const updateBookingStatus = async (
   });
   if (!booking) throw new Error('Booking not found');
   if (booking.roomType.property.ownerId !== ownerId) throw new Error('Forbidden');
-  if (booking.status !== 'PENDING') throw new Error('Only pending bookings can be confirmed or cancelled');
+  if (status === 'CONFIRMED' && booking.status !== 'PENDING') {
+    throw new Error('Only pending bookings can be confirmed');
+  }
+  if (status === 'CANCELLED' && !['WAITING_PAYMENT', 'PENDING', 'CONFIRMED'].includes(booking.status)) {
+    throw new Error('Booking cannot be cancelled in its current state');
+  }
 
   const updated = await prisma.booking.update({
     where: { id },
@@ -218,7 +240,23 @@ export const cancelBooking = async (id: number, userId: number) => {
   if (!['WAITING_PAYMENT', 'PENDING'].includes(booking.status)) {
     throw new Error('Booking cannot be cancelled');
   }
-  return prisma.booking.update({ where: { id }, data: { status: 'CANCELLED', cancelledBy: 'USER' } });
+  const updated = await prisma.booking.update({ 
+    where: { id }, 
+    data: { status: 'CANCELLED', cancelledBy: 'USER' },
+    include: { roomType: { include: { property: true } } }
+  });
+
+  // Notifikasi kepada Tenant
+  const ownerId = (updated.roomType.property as any).ownerId;
+  await createNotification(
+    ownerId,
+    '❌ Booking Cancelled by Guest',
+    `A guest has cancelled their booking for ${updated.roomType.property.name}.`,
+    'BOOKING_CANCELLED',
+    id
+  );
+
+  return updated;
 };
 
 export const createReview = async (
