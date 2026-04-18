@@ -8,9 +8,9 @@ const router = Router();
 
 // Public
 router.get('/', propertyController.getAllProperties);
+router.get('/calculate-price', propertyController.calculateBookingPrice);
 router.get('/:id', propertyController.getPropertyById);
 router.get('/:id/calendar', propertyController.getPropertyCalendar);
-router.get('/calculate-price', propertyController.calculateBookingPrice);
 
 // Tenant only
 router.post('/', authenticateToken, authorizeRole('TENANT'), validate(createPropertySchema), propertyController.createProperty);

@@ -113,7 +113,7 @@ export const uploadPaymentProof = async (
   if (booking.status !== 'WAITING_PAYMENT') throw new Error('Booking is not waiting for payment');
   
   if (new Date() > booking.paymentDeadline) {
-    await prisma.booking.update({ where: { id: bookingId }, data: { status: 'CANCELLED' } });
+    await prisma.booking.update({ where: { id: bookingId }, data: { status: 'CANCELLED', cancelledBy: 'SYSTEM' } });
     throw new Error('Payment deadline has passed. Booking has been cancelled.');
   }
 
@@ -194,7 +194,7 @@ export const updateBookingStatus = async (
 
   const updated = await prisma.booking.update({
     where: { id },
-    data: { status },
+    data: { status, ...(status === 'CANCELLED' && { cancelledBy: 'TENANT' }) },
     include: {
       user: { select: { id: true, name: true, email: true } },
       roomType: { include: { property: { select: { id: true, name: true } } } },
@@ -218,7 +218,7 @@ export const cancelBooking = async (id: number, userId: number) => {
   if (!['WAITING_PAYMENT', 'PENDING'].includes(booking.status)) {
     throw new Error('Booking cannot be cancelled');
   }
-  return prisma.booking.update({ where: { id }, data: { status: 'CANCELLED' } });
+  return prisma.booking.update({ where: { id }, data: { status: 'CANCELLED', cancelledBy: 'USER' } });
 };
 
 export const createReview = async (
@@ -248,7 +248,7 @@ export const cancelExpiredBookings = async () => {
       status: 'WAITING_PAYMENT',
       paymentDeadline: { lt: new Date() },
     },
-    data: { status: 'CANCELLED' },
+    data: { status: 'CANCELLED', cancelledBy: 'SYSTEM' },
   });
   if (result.count > 0) {
     console.log(`[CRON] Auto-cancelled ${result.count} expired booking(s)`);

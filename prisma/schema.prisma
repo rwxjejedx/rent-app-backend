@@ -177,6 +177,7 @@ model Booking {
   checkOut        DateTime
   totalPrice      Decimal
   status          BookingStatus @default(WAITING_PAYMENT)
+  cancelledBy     String?       // TENANT, USER, SYSTEM
   paymentMethod   PaymentMethod @default(MANUAL_TRANSFER)
   paymentProof    String?
   paymentDeadline DateTime
