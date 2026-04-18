@@ -197,8 +197,9 @@ export const getPropertyCalendar = async (id: number, year: number, month: numbe
   const days = endDate.getDate();
 
   for (let day = 1; day <= days; day++) {
-    const date = new Date(year, month - 1, day);
-    const dateStr = date.toISOString().split('T')[0];
+    // Use UTC to avoid timezone offset issues
+    const dateStr = `${year}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+    const date = new Date(`${dateStr}T00:00:00.000Z`);
 
     const roomPrices = property.roomTypes.map((rt) => {
       const price = getEffectivePrice(rt.basePrice, rt.peakRates, date.toISOString());
@@ -271,4 +272,46 @@ const getEffectivePrice = (basePrice: any, peakRates: any[], date?: string) => {
   if (!applicable) return Number(basePrice);
   if (applicable.rateType === 'NOMINAL') return Number(basePrice) + Number(applicable.rateValue);
   return Number(basePrice) * (1 + Number(applicable.rateValue) / 100);
+};
+
+export const calculateBookingPrice = async (
+  roomTypeId: number,
+  checkIn: string,
+  checkOut: string
+) => {
+  const checkInDate = new Date(checkIn);
+  const checkOutDate = new Date(checkOut);
+
+  const roomType = await prisma.roomType.findUnique({
+    where: { id: roomTypeId },
+    include: { peakRates: true },
+  });
+  if (!roomType) throw new Error('Room type not found');
+
+  const nights = Math.ceil((checkOutDate.getTime() - checkInDate.getTime()) / (1000 * 60 * 60 * 24));
+  if (nights <= 0) throw new Error('Invalid date range');
+
+  let totalPrice = 0;
+  const breakdown: { date: string; price: number; isPeak: boolean }[] = [];
+
+  for (let i = 0; i < nights; i++) {
+    const date = new Date(checkInDate);
+    date.setUTCDate(date.getUTCDate() + i);
+    const dateStr = date.toISOString().split('T')[0];
+    const price = getEffectivePrice(roomType.basePrice, roomType.peakRates, date.toISOString());
+    const isPeak = price !== Number(roomType.basePrice);
+    totalPrice += price;
+    breakdown.push({ date: dateStr, price, isPeak });
+  }
+
+  return {
+    roomTypeId,
+    roomTypeName: roomType.name,
+    basePrice: Number(roomType.basePrice),
+    checkIn,
+    checkOut,
+    nights,
+    totalPrice,
+    breakdown,
+  };
 };

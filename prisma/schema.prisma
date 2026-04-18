@@ -53,6 +53,7 @@ model User {
   reviews           Review[]
   properties        Property[]
   categories        Category[]
+  notifications     Notification[]
 
   @@map("users")
 }
@@ -179,11 +180,29 @@ model Booking {
   paymentMethod   PaymentMethod @default(MANUAL_TRANSFER)
   paymentProof    String?
   paymentDeadline DateTime
+  guestName       String?
+  guestNik        String?
+  guestPhone      String?
+  guestAddress    String?
   review          Review?
   createdAt       DateTime      @default(now())
   updatedAt       DateTime      @updatedAt
 
   @@map("bookings")
+}
+
+model Notification {
+  id        Int      @id @default(autoincrement())
+  userId    Int
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  title     String
+  message   String
+  type      String   // BOOKING_NEW, BOOKING_CONFIRMED, BOOKING_CANCELLED, PAYMENT_UPLOADED
+  isRead    Boolean  @default(false)
+  bookingId Int?
+  createdAt DateTime @default(now())
+
+  @@map("notifications")
 }
 
 model Review {

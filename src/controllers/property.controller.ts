@@ -75,3 +75,21 @@ export const getMyProperties = async (req: AuthRequest, res: Response) => {
     res.status(500).json({ message: error.message });
   }
 };
+
+export const calculateBookingPrice = async (req: AuthRequest, res: Response) => {
+  try {
+    const { roomTypeId, checkIn, checkOut } = req.query;
+    if (!roomTypeId || !checkIn || !checkOut) {
+      res.status(400).json({ message: 'roomTypeId, checkIn, checkOut are required' });
+      return;
+    }
+    const result = await propertyService.calculateBookingPrice(
+      Number(roomTypeId),
+      checkIn as string,
+      checkOut as string
+    );
+    res.json(result);
+  } catch (error: any) {
+    res.status(400).json({ message: error.message });
+  }
+};

@@ -14,9 +14,18 @@ export const createRoomSchema = z.object({
   number: z.string().min(1, 'Room number is required'),
 });
 
+// Accept both "2026-04-25" and "2026-04-25T00:00:00.000Z"
+const dateOrDatetime = z.string().refine(
+  (val) => !isNaN(Date.parse(val)),
+  { message: 'Invalid date format' }
+);
+
 export const createPeakRateSchema = z.object({
-  startDate: z.string().datetime('Invalid start date'),
-  endDate: z.string().datetime('Invalid end date'),
+  startDate: dateOrDatetime,
+  endDate: dateOrDatetime,
   rateType: z.enum(['NOMINAL', 'PERCENTAGE']),
   rateValue: z.number().positive('Rate value must be positive'),
-});
+}).refine(
+  (data) => new Date(data.endDate) >= new Date(data.startDate),
+  { message: 'End date must be after or equal to start date', path: ['endDate'] }
+);

@@ -10,6 +10,7 @@ const router = Router();
 router.get('/', propertyController.getAllProperties);
 router.get('/:id', propertyController.getPropertyById);
 router.get('/:id/calendar', propertyController.getPropertyCalendar);
+router.get('/calculate-price', propertyController.calculateBookingPrice);
 
 // Tenant only
 router.post('/', authenticateToken, authorizeRole('TENANT'), validate(createPropertySchema), propertyController.createProperty);
