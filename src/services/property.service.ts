@@ -192,25 +192,73 @@ export const getPropertyCalendar = async (id: number, year: number, month: numbe
 
   if (!property) throw new Error('Property not found');
 
-  // Generate price per day untuk setiap room type
+  // Generate availability per day untuk setiap room type
   const calendar: Record<string, any> = {};
   const days = endDate.getDate();
 
+  // Fetch all bookings that overlap with this month
+  const bookings = await prisma.booking.findMany({
+    where: {
+      roomType: { propertyId: id },
+      status: { in: ['WAITING_PAYMENT', 'PENDING', 'CONFIRMED'] },
+      AND: [
+        { checkIn: { lt: new Date(year, month, 1) } },
+        { checkOut: { gt: new Date(year, month - 1, 1) } },
+      ],
+    },
+    select: { roomTypeId: true, checkIn: true, checkOut: true },
+  });
+
+  // Fetch manual availability blocks
+  const manualAvailability = await prisma.roomAvailability.findMany({
+    where: {
+      roomType: { propertyId: id },
+      date: { gte: startDate, lte: endDate },
+    },
+  });
+
   for (let day = 1; day <= days; day++) {
-    // Use UTC to avoid timezone offset issues
     const dateStr = `${year}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
     const date = new Date(`${dateStr}T00:00:00.000Z`);
 
-    const roomPrices = property.roomTypes.map((rt) => {
+    const roomDetails = property.roomTypes.map((rt) => {
       const price = getEffectivePrice(rt.basePrice, rt.peakRates, date.toISOString());
-      return { roomTypeId: rt.id, name: rt.name, price };
+      
+      // Hitung booked count untuk hari ini
+      const bookedCount = bookings.filter(b => 
+        b.roomTypeId === rt.id && 
+        new Date(b.checkIn) <= date && 
+        new Date(b.checkOut) > date
+      ).length;
+
+      // Cek manual block
+      const isManuallyBlocked = manualAvailability.some(ma => 
+        ma.roomTypeId === rt.id && 
+        ma.date.toISOString().split('T')[0] === dateStr && 
+        !ma.isAvailable
+      );
+
+      const totalRooms = rt.rooms.length;
+      const availableRooms = isManuallyBlocked ? 0 : totalRooms - bookedCount;
+
+      return { 
+        roomTypeId: rt.id, 
+        name: rt.name, 
+        price,
+        totalRooms,
+        bookedCount,
+        availableRooms,
+        isAvailable: availableRooms > 0
+      };
     });
 
-    const minPrice = roomPrices.length
-      ? Math.min(...roomPrices.map((r) => r.price))
+    const minPrice = roomDetails.length
+      ? Math.min(...roomDetails.map((r) => r.price))
       : null;
 
-    calendar[dateStr] = { date: dateStr, roomPrices, minPrice };
+    const isFullyBooked = roomDetails.every(r => !r.isAvailable);
+
+    calendar[dateStr] = { date: dateStr, roomDetails, minPrice, isFullyBooked };
   }
 
   return calendar;
