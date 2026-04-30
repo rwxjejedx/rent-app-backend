@@ -185,6 +185,7 @@ export const getPropertyCalendar = async (id: number, year: number, month: numbe
               ],
             },
           },
+          rooms: true,
         },
       },
     },
