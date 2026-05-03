@@ -6,8 +6,7 @@
   "main": "dist/index.js",
   "scripts": {
     "start": "node dist/index.js",
-    "build": "prisma generate --no-engine && tsc",
-    "postinstall": "",
+    "build": "PRISMA_SKIP_POSTINSTALL-generate=true prisma generate && tsc",
     "railway-build": "npm run build && npx prisma migrate deploy"
   },
   "keywords": [],
