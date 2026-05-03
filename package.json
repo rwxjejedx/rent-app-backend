@@ -6,7 +6,7 @@
   "main": "dist/index.js",
   "scripts": {
     "start": "node dist/index.js",
-    "build": "PRISMA_SKIP_POSTINSTALL-generate=true prisma generate && tsc",
+    "build": "cross-env PRISMA_SKIP_POSTINSTALL_GENERATE=true prisma generate && tsc",
     "railway-build": "npm run build && npx prisma migrate deploy"
   },
   "keywords": [],
@@ -38,13 +38,14 @@
     "@types/express": "^4.17.21",
     "@types/jsonwebtoken": "^9.0.6",
     "@types/multer": "^2.1.0",
-    "@types/node": "^20.14.0",
+    "@types/node": "^20.19.39",
     "@types/node-cron": "^3.0.11",
     "@types/nodemailer": "^8.0.0",
     "@types/passport": "^1.0.17",
     "@types/passport-google-oauth20": "^2.0.17",
     "@types/passport-jwt": "^4.0.1",
     "@types/pg": "^8.20.0",
+    "cross-env": "^10.1.0",
     "tsx": "^4.15.7",
     "typescript": "^5.4.5"
   }
