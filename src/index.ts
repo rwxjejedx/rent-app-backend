@@ -17,7 +17,8 @@ import cors from 'cors';
 const app = express();
 
 app.use(cors({
-  origin: ['https://antacom.vercel.app'],
+  origin: ['https://antacom.vercel.app', 'https://antacom-git-main-julhams-projects.vercel.app',
+    'http://localhost:5173'],
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization'],
   credentials: true // Penting jika kamu nanti menggunakan cookie/session
