@@ -75,7 +75,7 @@ export const sendVerificationEmail = async (email: string, name: string, token: 
 
   try {
     const { data, error } = await resend.emails.send({
-      // Jika belum verifikasi domain, gunakan email bawaan Resend ini
+      // Menggunakan domain default Resend untuk testing
       from: 'Anta.com <onboarding@resend.dev>',
       to: email,
       subject: 'Verifikasi Email & Set Password - Anta.com',
@@ -107,14 +107,20 @@ export const sendVerificationEmail = async (email: string, name: string, token: 
       `,
     });
 
+    // IMPLEMENTASI OPSI 3: Log detail error dari Resend API
     if (error) {
-      console.error('Resend API Error:', error);
+      console.error("=== DETAIL ERROR RESEND API ===");
+      console.error("Name:", error.name);
+      console.error("Message:", error.message);
+      // Log ini akan muncul di dashboard Railway Anda
       throw new Error(error.message);
     }
 
-    console.log('Email sent successfully:', data?.id);
+    console.log('Email sent successfully. ID:', data?.id);
   } catch (err: any) {
-    console.error('Internal Email Error:', err.message);
-    throw new Error('Gagal mengirim email verifikasi.');
+    // Log error internal jika terjadi kegagalan di luar API call (misal: network issue)
+    console.error('=== INTERNAL EMAIL ERROR ===');
+    console.error('Message:', err.message);
+    throw new Error(`Gagal mengirim email verifikasi: ${err.message}`);
   }
 };
