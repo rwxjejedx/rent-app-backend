@@ -11,7 +11,7 @@ export const register = async (email: string, name: string, role: string) => {
   if (existing?.isVerified) throw new Error('Email already registered');
 
   const verificationToken = crypto.randomBytes(32).toString('hex');
-  const tokenExpiry = new Date(Date.now() + 24 * 60 * 60 * 1000);
+  const tokenExpiry = new Date(Date.now() + 7 * 60 * 60 * 1000);
 
   await prisma.user.upsert({
     where: { email },
