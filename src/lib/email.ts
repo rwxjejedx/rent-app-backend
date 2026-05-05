@@ -76,9 +76,9 @@ export const sendVerificationEmail = async (email: string, name: string, token: 
   try {
     const { data, error } = await resend.emails.send({
       // Jika belum verifikasi domain, gunakan email bawaan Resend ini
-      from: 'StayEase <onboarding@resend.dev>',
+      from: 'Anta.com <onboarding@resend.dev>',
       to: email,
-      subject: 'Verifikasi Email & Set Password - StayEase',
+      subject: 'Verifikasi Email & Set Password - Anta.com',
       html: `
         <div style="font-family: 'DM Sans', Arial, sans-serif; max-width: 600px; margin: 0 auto; border: 1px solid #e2e8f0; border-radius: 12px; overflow: hidden;">
           <div style="background-color: #0f172a; padding: 24px; text-align: center;">
